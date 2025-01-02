@@ -1,15 +1,14 @@
-# Elysia with Bun runtime
+# Elysia e Bun API (Notas)
+Aplicação tutorial do Elysia com implementação do db sqlite
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
-```bash
-bun create elysia ./elysia-example
-```
+## Database
+Para criar o db sqlite executar `bun src/db/create-local-db.ts`
 
-## Development
-To start the development server run:
+## Ambiente de desenvolvimento
+Para iniciar o ambiente de desenvolvimento:
 ```bash
 bun run dev
 ```
 
-Open http://localhost:3000/ with your browser to see the result.
+## Documentação (swagger)
+Para visualizar a documentação implementada via swagger visitar http://localhost:3000/swagger

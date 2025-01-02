@@ -13,8 +13,18 @@ type Memo = typeof memo.static;
 class Note {
   constructor() { }
 
-  add(note: Memo) {
-    const insertedNote = db.query('INSERT INTO note (data, author) VALUES ($data, $author)').run(note);
+  list() {
+    const notes = db.query('SELECT * FROM note').all();
+    return notes;
+  }
+
+  get(id: number) {
+    const note = db.query('SELECT * FROM note WHERE id = $id').get({ $id: id });
+    return note;
+  }
+
+  add(note: Memo & { username: string }) {
+    const insertedNote = db.query('INSERT INTO note (data, author) VALUES ($data, $author)').run({ $data: note.data, $author: note.username });
     return insertedNote;
   }
 
@@ -38,14 +48,12 @@ export const note = new Elysia({ prefix: '/note' })
       params
     });
   })
-  .get('/', () => {
-    const notes = db.query('SELECT * FROM note').all();
-    return notes;
+  .get('/', ({ note }) => {
+    return note.list();
   })
   .use(getUserId)
-  .put('/', ({ body: { data }, user }) => {
-    const note = db.query('INSERT INTO note (data, author) VALUES ($data, $author)').run({ $data: data, $author: user?.username ?? 'Unknown' });
-    return note;
+  .put('/', ({ note, body: { data }, user }) => {
+    return note.add({ data, username: user?.username ?? 'unknown' });
   }, {
     body: memo
   })
@@ -54,23 +62,20 @@ export const note = new Elysia({ prefix: '/note' })
       id: t.Number()
     })
   })
-  .get('/:id', ({ params: { id } }) => {
-    return db.query('SELECT * FROM note WHERE id = $id').get({ $id: id }) ?? error(404, 'not found');
+  .get('/:id', ({ note, params: { id } }) => {
+    return  note.get(id) ?? error(404, 'not found');
   })
-  .delete('/:id', ({ params: { id }, error }) => {
-    const note = db.query('SELECT * FROM note WHERE id = $id').get({ $id: id });
-    console.log('note', note)
-    if (note) {
-      db.query('DELETE FROM note WHERE id = $id').run({ $id: id });
-      return true;
+  .delete('/:id', ({ note, params: { id }, error }) => {
+    const hasNote = note.get(id);
+    if (hasNote) {
+      return note.remove(id);
     }
     return error(422, 'invalid id');
   })
-  .patch('/:id', ({ params: { id }, body: { data }, error, user }) => {
-    const note = db.query('SELECT * FROM note WHERE id = $id').get({ $id: id });
-    if (note) {
-      db.query('UPDATE note SET data = $data, author = $author WHERE id = $id').run({ $id: id, $data: data, $author: user?.username ?? 'Unknown' });
-      return true;
+  .patch('/:id', ({ note, params: { id }, body: { data }, error }) => {
+    const hasNote = note.get(id);
+    if (hasNote) {
+      return note.update(id, { data });
     }
     return error(422, 'invalid id');
   }, {
